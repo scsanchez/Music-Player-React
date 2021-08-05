@@ -1,88 +1,119 @@
 import React, { useState, useEffect, Fragment } from "react";
 
 function MusicPlayer() {
-	const [myList, setMyList] = useState([]); //PASO 2: este useState va entre [] porque queremos que la lista de canciones (en este caso)
-	// se guarde en un "Array" para poderlo recorrer mas adelante con el "map" (AQUI YA ESTA DECLARADO EL useState)
-	// se hace todo esto porque necesitamos que "myList" se pueda modificar mas adelante (volver esa varible dinamica a traves del useState)
-	const [listView, setListView] = useState("");
-	const [musicAudio, setMusicAudio] = useState("");
 	const SOUND_URL = "https://assets.breatheco.de/apis/sound/";
-	const x = document.querySelector("musicplayer");
+	const [songList, setSongList] = useState([]);
+	const [myIndex, setMyIndex] = useState(-1);
+	const [urlSong, setUrlSong] = useState(
+		"https://assets.breatheco.de/apis/sound/files/videogame/songs/zelda_outworld.mp3"
+	);
+	const [playSong, setplaySong] = useState(false);
+	const [currentSongName, setCurrentSongName] = useState("Choose your song!");
+	const AUDIO = document.querySelector("#audio");
 
-	// PASO 3: se usa useEffect en este caso porque necesitamos cargar la lista de canciones al cargar la pagina
-	// y se realiza haciendo un arrow function "useEffect( () => englobando todo el Fetch )" que termina en la linea 28
 	useEffect(() => {
 		fetch(SOUND_URL.concat("songs"))
 			.then(function(response) {
 				if (!response.ok) {
 					throw Error(response.statusText);
 				}
-				// Read the response as json.
 				return response.json();
 			})
 			.then(function(responseAsJson) {
-				setMyList(responseAsJson); // PASO 1: se declara "setMyList" es el resultado del fetch que se coloca en la linea 4
-				// junto a myList para hacerle el "useState" (ver linea 4)
-				setListView(); //PASO 4: se declara listView porque es la funcion que mas adelante me va a mostar la lista de canciones
-				// sigue en la linea 30
-				console.log("lista de canciones", responseAsJson);
+				setSongList(responseAsJson);
+				console.log("Song list", responseAsJson);
 			})
 			.catch(function(error) {
 				console.log("Looks like there was a problem: \n", error);
 			});
 	}, []);
 
-	// PASO 5: esta es la funcion del map que coge el responseAsJason (PASOS ANTERIORES)
-	//para mostrarlo en lista (IMPORANTE se declara saveList porque es la variable que tiene esa lista de canciones
-	//y/o recoge ese mapeo de canciones)
-	useEffect(() => {
-		setListView(
-			myList.map((elemento, index) => {
-				return (
-					<ul
-						id={index}
-						key={index.toString()}
-						onClick={() => {
-							setMusicAudio(elemento.url);
-							console.log(setMusicAudio(elemento.url));
-							// console.log(setMusicAudio());
-						}}>
-						{elemento.name}
-					</ul>
-				);
-			})
+	const songlist = songList.map((oneSong, index) => {
+		return (
+			<li
+				className="onPlaying"
+				key={oneSong.url}
+				onClick={() => {
+					setUrlSong(SOUND_URL.concat(oneSong.url));
+					setMyIndex(index);
+					setCurrentSongName(oneSong.name);
+					setplaySong(true);
+					AUDIO.load();
+					AUDIO.play();
+				}}>
+				{oneSong.name}
+			</li>
 		);
-	}, [myList]);
+	});
 
-	function playAudio() {
-		x.play();
-		console.log(playAudio());
+	function nextSong(songIndex) {
+		let newurl = "";
+
+		if (songList[songIndex + 1]) {
+			newurl = SOUND_URL.concat(songList[songIndex + 1].url);
+			setUrlSong(newurl);
+			setMyIndex(songIndex + 1);
+			AUDIO.load();
+			AUDIO.play();
+		} else {
+			newurl = SOUND_URL.concat(songList[0].url);
+			setUrlSong(newurl);
+			setMyIndex(0);
+			AUDIO.load();
+			AUDIO.play();
+		}
 	}
-	function pauseAudio() {
-		x.pause();
-		console.log(pauseAudio());
+
+	function previusSong(songIndex) {
+		let newurl = "";
+
+		if (songList[songIndex - 1]) {
+			newurl = SOUND_URL.concat(songList[songIndex - 1].url);
+			setUrlSong(newurl);
+			setMyIndex(songIndex - 1);
+			AUDIO.load();
+			AUDIO.play();
+		} else {
+			newurl = SOUND_URL.concat(songList[songList.length - 1].url);
+			setUrlSong(newurl);
+			setMyIndex(songList.length - 1);
+			AUDIO.load();
+			AUDIO.play();
+		}
 	}
 
 	return (
 		<Fragment>
-			<div className>
-				<button onClick={playAudio}>Play</button>
-				<button onClick={pauseAudio}>Pause</button>
+			<div className="img-title-box">
+				<h1 className="title-box">Music Player</h1>
 			</div>
-			<div className="container">
-				<div>
-					{" "}
-					<audio
-						id="musicplayer"
-						// ref="audio_tag"
-						src={SOUND_URL.concat(musicAudio)}
-						controls
-						// muted
-						autoPlay
-					/>{" "}
-				</div>
-				{listView}
+			<audio id="audio">
+				<source src={urlSong} type="audio/mpeg" />
+			</audio>
+			<div className="button-box">
+				<button
+					className="button-size btn"
+					onClick={() => previusSong(myIndex)}>
+					<i className="fa fa-backward" />
+				</button>
+				<button
+					className="button-size btn"
+					onClick={() => AUDIO.pause()}>
+					<i className="fa fa-pause" />
+				</button>
+				<button
+					className="button-size btn"
+					onClick={() => AUDIO.play()}>
+					<i className="fa fa-play" />
+				</button>
+				<button
+					className="button-size btn"
+					onClick={() => nextSong(myIndex)}>
+					<i className="fa fa-forward" />
+				</button>
 			</div>
+			<div className="song-playing">Now Playing: {currentSongName}</div>
+			<div className="song-list">{songlist}</div>
 		</Fragment>
 	);
 }
